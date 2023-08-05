@@ -117,6 +117,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
             
         #查询结果
         reply = Bridge().fetch_reply_content(content, context)
+        
     
     #发消息
     ntchat_channel.send(reply, context)
@@ -204,7 +205,14 @@ class NtchatChannel(object):
 
     # 统一的发送函数，每个Channel自行实现，根据reply的type字段发送不同类型的消息
     def send(self, reply: Reply, context: Context):
+        #打印对象信息
+        logger.debug(f"reply对象 信息为：{vars(reply)}")
+        logger.debug(f"context对象 信息为：{vars(context)}")
+        
+        #收消息id
         receiver = context["receiver"]
+        
+        #文本消息
         if reply.type == ReplyType.TEXT:
             match = re.search(r"@(.*?)\n", reply.content)
             if match and False:
@@ -222,15 +230,20 @@ class NtchatChannel(object):
             else:
                 wechatnt.send_text(receiver, reply.content)
             logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
+        
+        #错误、提示消息    
         elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
             wechatnt.send_text(receiver, reply.content)
             logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
+        
+        #图片下载    
         elif reply.type == ReplyType.IMAGE_URL:  # 从网络下载图片
             img_url = reply.content
             filename = str(uuid.uuid4())
             image_path = self.download_and_compress_image(img_url, filename)
             wechatnt.send_image(receiver, file_path=image_path)
             logger.info("[WX] sendImage url={}, receiver={}".format(img_url, receiver))
+            
         elif reply.type == ReplyType.IMAGE:  # 从文件读取图片
             wechatnt.send_image(reply.content, toUserName=receiver)
             logger.info("[WX] sendImage, receiver={}".format(receiver))
@@ -253,8 +266,9 @@ class NtchatChannel(object):
             wechatnt.invite_room_member(reply.content, member_list)
             logger.info("[WX] sendInviteRoom={}, receiver={}".format(reply.content, receiver))
             
-            
-    def download_and_compress_image(url, filename, quality=80):
+    
+    #图片下载  
+    def download_and_compress_image(self, url, filename, quality=80):
         # 确定保存图片的目录
         directory = os.path.join(os.getcwd(), "tmp")
         # 如果目录不存在，则创建目录
@@ -271,7 +285,7 @@ class NtchatChannel(object):
 
         return image_path
 
-
+    #视频下载
     def download_video(self, url, filename):
         # 确定保存视频的目录
         directory = os.path.join(os.getcwd(), "tmp")
@@ -298,7 +312,7 @@ class NtchatChannel(object):
 
         return video_path
 
-
+    #获取名称
     def get_wxid_by_name(self, room_members, group_wxid, name):
         if group_wxid in room_members:
             for member in room_members[group_wxid]['member_list']:
@@ -306,7 +320,8 @@ class NtchatChannel(object):
                     return member['wxid']
         return None  # 如果没有找到对应的group_wxid或name，则返回None
 
-
+    
+    #检查
     def _check(self, func):
         def wrapper(self, cmsg: ChatMessage):
             msgId = cmsg.msg_id
