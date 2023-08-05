@@ -90,7 +90,9 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     #回复对象
     reply: Reply = None
     
+    #转发消息给插件，优先处理
     try:
+        logger.debug(f"即将将消息发送给插件，查询结果")
         #检测插件是否会消费该消息
         e_context = PluginManager().emit_event(
             EventContext(
@@ -104,8 +106,9 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     except Exception as e:
         logger.error(f"执行插件任务报错！错误信息为：{e}")
     
-    #未命中插件
+    #未命中插件，默认处理
     if reply is None or reply == "":
+        logger.debug(f"插件未命中查询，将使用GPT查询结果")
         reply = Bridge().fetch_reply_content(context["content"], context)
     
     #发消息
