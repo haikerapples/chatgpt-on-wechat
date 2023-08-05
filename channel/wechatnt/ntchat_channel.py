@@ -21,9 +21,11 @@ import os
 import time
 from channel.wechatnt.ntchat_tool import *
 
-
+#全局变量
 os.environ['ntchat_LOG'] = "ERROR"
 wechatnt = ntchat.WeChat()
+ntchat_channel = None
+
 
 # 注册好友请求监听
 @wechatnt.msg_register(ntchat.MT_RECV_FRIEND_MSG)
@@ -61,7 +63,6 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
 
     #登录信息
     login_info = wechatnt.get_login_info()
-    nickname = login_info['nickname']
     user_id = login_info['wxid']
     
     #发消息用户ID
@@ -69,23 +70,20 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     #接受消息用户ID
     to_wxid = message["data"]["to_wxid"]
     
-    
     #如果监听到自回复，跳过
     if from_wxid == to_wxid or from_wxid == user_id:
         logger.debug(f"自回复消息，跳过处理")
         return
-    
+
     #获取消息处理结果
     context = NTTool(wechat_instance).dealMessage(message)
-
+    
     #group消息处理
-    room_wxid = message["data"]["room_wxid"]
-    isGroup = room_wxid is not None and room_wxid != ""
-    at_user_list = message["data"].get('at_user_list', [])
-    if isGroup and not user_id in at_user_list:
+    isGroup = context.get("isgroup")
+    is_at = context.get("is_at")
+    if isGroup and not is_at:
         logger.debug(f"非@机器人的群聊消息 或 机器人自己发送的消息，跳过处理")
         return
-        
     
     #回复对象
     reply: Reply = None
@@ -109,11 +107,28 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     #未命中插件，默认处理
     if reply is None or reply == "":
         logger.debug(f"插件未命中查询，将使用GPT查询结果")
-        reply = Bridge().fetch_reply_content(context["content"], context)
+        content = context.content
+        #画图处理
+        img_match_prefix = check_prefix(content, conf().get("image_create_prefix"))
+        if img_match_prefix:
+            content = content.replace(img_match_prefix, "", 1)
+            context.type = ContextType.IMAGE_CREATE
+            context.content = content
+            
+        #查询结果
+        reply = Bridge().fetch_reply_content(content, context)
     
     #发消息
-    NtchatChannel().send(reply, context)
-        
+    ntchat_channel.send(reply, context)
+
+#检查前缀是否匹配        
+def check_prefix(content, prefix_list):
+    if not prefix_list:
+        return None
+    for prefix in prefix_list:
+        if content.startswith(prefix):
+            return prefix
+    return None
 
 @singleton
 class NtchatChannel(object):
@@ -125,6 +140,8 @@ class NtchatChannel(object):
         self.config = conf()
         #tool
         self.tool = NTTool(wechatnt)
+        global ntchat_channel
+        ntchat_channel = self
 
     # 初始化
     def startup(self):
