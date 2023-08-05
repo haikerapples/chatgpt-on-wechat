@@ -5,7 +5,7 @@ from common import const
 from common.log import logger
 from common.singleton import singleton
 from config import conf
-from translate.factory import create_translator
+from my_translate.factory import create_translator
 from voice.factory import create_voice
 
 

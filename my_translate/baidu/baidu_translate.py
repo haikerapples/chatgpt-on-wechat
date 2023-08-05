@@ -6,7 +6,7 @@ from hashlib import md5
 import requests
 
 from config import conf
-from translate.translator import Translator
+from my_translate.translator import Translator
 
 
 class BaiduTranslator(Translator):
