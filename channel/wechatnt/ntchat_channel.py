@@ -71,7 +71,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     
     
     #如果监听到自回复，跳过
-    if from_wxid == to_wxid:
+    if from_wxid == to_wxid or from_wxid == user_id:
         logger.debug(f"自回复消息，跳过处理")
         return
     
