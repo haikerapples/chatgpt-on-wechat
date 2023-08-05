@@ -242,7 +242,7 @@ class NtchatChannel(object):
         return image_path
 
 
-    def download_video(url, filename):
+    def download_video(self, url, filename):
         # 确定保存视频的目录
         directory = os.path.join(os.getcwd(), "tmp")
         # 如果目录不存在，则创建目录
@@ -269,7 +269,7 @@ class NtchatChannel(object):
         return video_path
 
 
-    def get_wxid_by_name(room_members, group_wxid, name):
+    def get_wxid_by_name(self, room_members, group_wxid, name):
         if group_wxid in room_members:
             for member in room_members[group_wxid]['member_list']:
                 if member['display_name'] == name or member['nickname'] == name:
@@ -277,7 +277,7 @@ class NtchatChannel(object):
         return None  # 如果没有找到对应的group_wxid或name，则返回None
 
 
-    def _check(func):
+    def _check(self, func):
         def wrapper(self, cmsg: ChatMessage):
             msgId = cmsg.msg_id
             create_time = cmsg.create_time  # 消息时间戳
@@ -290,7 +290,7 @@ class NtchatChannel(object):
         return wrapper
     
     #确保文件可读
-    def ensure_file_ready(file_path, timeout=10, interval=0.5):
+    def ensure_file_ready(self, file_path, timeout=10, interval=0.5):
         """确保文件可读。
 
         :param file_path: 文件路径。

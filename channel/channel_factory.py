@@ -33,4 +33,9 @@ def create_channel(channel_type):
         from channel.wechatcom.wechatcomapp_channel import WechatComAppChannel
 
         return WechatComAppChannel()
+    
+    elif channel_type == "ntchat":
+        from channel.wechatnt.ntchat_channel import NtchatChannel
+
+        return NtchatChannel()
     raise RuntimeError

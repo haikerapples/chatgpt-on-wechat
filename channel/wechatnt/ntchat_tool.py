@@ -134,7 +134,7 @@ class NTTool(object):
         return None  # 如果没有找到对应的group_wxid或wxid，则返回None
     
     #获取昵称
-    def get_nickname(contacts, wxid):
+    def get_nickname(self, contacts, wxid):
         for contact in contacts:
             if contact['wxid'] == wxid:
                 return contact['nickname']
