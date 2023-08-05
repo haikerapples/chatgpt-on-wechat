@@ -37,7 +37,13 @@ def on_recv_text_msg(wechat_instance: ntchat.WeChat, message):
     scene = dom.documentElement.getAttribute("scene")
     
     #是否有开启自动通过好友设置
-    if conf().get("accept_friend", False):
+    accept_friend = False
+    try:
+        accept_friend = conf().get("accept_friend", False)
+    except Exception as e:
+        logger.error(f"配置文件未定义 accept_friend")
+        
+    if accept_friend:
         # 自动同意好友申请
         delay = random.randint(1, 180)
         threading.Timer(delay, wechat_instance.accept_friend_request,
@@ -121,7 +127,11 @@ class NtchatChannel(object):
     def startup(self):
         #登录
         logger.info("开始初始化······")
-        smart = self.config.get("ntchat_smart", True)
+        smart = True
+        try:
+            smart = self.config.get("ntchat_smart", True)
+        except Exception as e:
+            logger.error(f"配置文件未定义 ntchat_smart")
         wechatnt.open(smart=smart)
         wechatnt.wait_login()
         logger.info("等待登录······")
