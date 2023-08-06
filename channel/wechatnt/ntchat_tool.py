@@ -90,10 +90,10 @@ class NTTool(object):
         content_dict["msg_id"] = msgid
         content_dict["create_time"] = timestamp
         #copy @机器人的消息，不会被识别为@，这里做兼容(例如： @robot 你好，此时如果是copy字符串时，无法被识别为@的消息)
-        match_isCopyMsgToRobot = msg.startswith(f"@{nickname}")
+        match_isCopyMsgToRobot = msg.startswith(f"@{nickname} ")
         if match_isCopyMsgToRobot:
            #去除@信息
-           tempContent = msg.replace(f"@{nickname}", "")
+           tempContent = msg.replace(f"@{nickname} ", "")
            msg = tempContent
         content_dict["content"] = msg
         content_dict["from_user_id"] = from_wxid
