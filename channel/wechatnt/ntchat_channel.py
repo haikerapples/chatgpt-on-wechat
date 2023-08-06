@@ -78,12 +78,18 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     #获取消息处理结果
     context = NTTool(wechat_instance).dealMessage(message)
     
-    #group消息处理
+    #群聊消息
     isGroup = context.get("isgroup")
-    is_at = context.get("is_at")
-    if isGroup and not is_at:
-        logger.debug(f"非@机器人的群聊消息 或 机器人自己发送的消息，跳过处理")
-        return
+    if isGroup:
+        #是否被@
+        is_at = context.get("is_at")
+        #群聊消息是否前缀匹配 or 关键词匹配
+        match_prefix = check_prefix(content, conf().get("group_chat_prefix"))
+        match_contain = check_contain(content, conf().get("group_chat_keyword"))
+        is_deal_msg = is_at or match_prefix or match_contain
+        if not is_deal_msg:
+            logger.debug(f"非@机器人的群聊消息 或 机器人自己发送的消息 或 消息前缀/消息内容未包含配置文件的配置内容，跳过处理")
+            return
     
     #回复对象
     reply: Reply = None
@@ -118,9 +124,9 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
         #查询结果
         reply = Bridge().fetch_reply_content(content, context)
         
-    
     #发消息
     ntchat_channel.send(reply, context)
+    
 
 #检查前缀是否匹配        
 def check_prefix(content, prefix_list):
@@ -129,6 +135,15 @@ def check_prefix(content, prefix_list):
     for prefix in prefix_list:
         if content.startswith(prefix):
             return prefix
+    return None
+
+#检查包含
+def check_contain(content, keyword_list):
+    if not keyword_list:
+        return None
+    for ky in keyword_list:
+        if content.find(ky) != -1:
+            return True
     return None
 
 @singleton
@@ -141,11 +156,13 @@ class NtchatChannel(object):
         self.config = conf()
         #tool
         self.tool = NTTool(wechatnt)
-        global ntchat_channel
-        ntchat_channel = self
 
     # 初始化
     def startup(self):
+        #设置全局
+        global ntchat_channel
+        ntchat_channel = self
+        
         #登录
         logger.info("开始初始化······")
         smart = True
@@ -173,7 +190,6 @@ class NtchatChannel(object):
         except KeyboardInterrupt:
             ntchat.exit_()
             os._exit(0)
-            # sys.exit(0)
         
     #处理用户信息
     def dealUserInfo(self):
