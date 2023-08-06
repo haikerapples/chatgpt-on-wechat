@@ -77,6 +77,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
 
     #获取消息处理结果
     context = NTTool(wechat_instance).dealMessage(message)
+    content = context.content
     
     #群聊消息
     isGroup = context.get("isgroup")
@@ -113,7 +114,6 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     #未命中插件，默认处理
     if reply is None or reply == "":
         logger.debug(f"插件未命中查询，将使用GPT查询结果")
-        content = context.content
         #画图处理
         img_match_prefix = check_prefix(content, conf().get("image_create_prefix"))
         if img_match_prefix:
