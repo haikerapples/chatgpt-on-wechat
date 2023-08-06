@@ -63,6 +63,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
 
     #登录信息
     login_info = wechatnt.get_login_info()
+    nickname = login_info['nickname']
     user_id = login_info['wxid']
     
     #发消息用户ID

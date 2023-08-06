@@ -89,6 +89,12 @@ class NTTool(object):
         content_dict = {}
         content_dict["msg_id"] = msgid
         content_dict["create_time"] = timestamp
+        #copy @机器人的消息，不会被识别为@，这里做兼容(例如： @robot 你好，此时如果是copy字符串时，无法被识别为@的消息)
+        match_isCopyMsgToRobot = msg.startswith(f"@{nickname}")
+        if match_isCopyMsgToRobot:
+           #去除@信息
+           tempContent = msg.replace(f"@{nickname}", "")
+           msg = tempContent
         content_dict["content"] = msg
         content_dict["from_user_id"] = from_wxid
         content_dict["from_user_nickname"] = contacts.get(from_wxid)
@@ -105,10 +111,12 @@ class NTTool(object):
         content_dict["receiver"] = from_wxid
         content_dict["session_id"] = from_wxid
         if isGroup:
-            content_dict["other_user_nickname"] = rooms.get(message["data"].get('room_wxid'))
-            content_dict["other_user_id"] = message["data"].get('room_wxid')
-            content_dict["is_at"] = user_id in at_user_list
-            content_dict["actual_user_nickname"] = self.get_display_name_or_nickname(room_members, message["data"].get('room_wxid'),from_wxid)
+            data = message["data"]
+            content_dict["other_user_nickname"] = rooms.get(data.get('room_wxid'))
+            content_dict["other_user_id"] = data.get('room_wxid')
+            is_at = (user_id in at_user_list) or match_isCopyMsgToRobot
+            content_dict["is_at"] = is_at
+            content_dict["actual_user_nickname"] = self.get_display_name_or_nickname(room_members, data.get('room_wxid'),from_wxid)
             #添加必要key
             content_dict["receiver"] = to_wxid
             content_dict["session_id"] = to_wxid
