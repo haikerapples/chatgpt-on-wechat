@@ -121,16 +121,20 @@ class NTTool(object):
             content_dict["receiver"] = to_wxid
             content_dict["session_id"] = to_wxid
                         
+        #获取其他字段
+        tempDic = self.dealDictWithType(type, message)
+        content_dict.update(tempDic)
+        
         #msg对象
         msgObj : ChatMessage = ChatMessage(content_dict)
         #信息映射
         for key, value in content_dict.items():
             if hasattr(msgObj, key):
                 setattr(msgObj, key, value)
+        #处理message的is_group
+        msgObj.is_group = isGroup
         content_dict["msg"] = msgObj
-        #获取其他字段
-        tempDic = self.dealDictWithType(type, message)
-        content_dict.update(tempDic)
+        
         #构造context
         context = Context(ContextType.TEXT, msg, content_dict)
         
