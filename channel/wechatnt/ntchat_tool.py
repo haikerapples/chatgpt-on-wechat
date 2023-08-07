@@ -55,8 +55,7 @@ class NTTool(object):
         
         #是否引用消息
         msg = ""
-        
-        if type == "11061":
+        if type == 11061:
             #引用消息
             raw_msg = message["data"]["raw_msg"]
             
