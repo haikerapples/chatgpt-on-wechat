@@ -57,7 +57,7 @@ def on_recv_text_msg(wechat_instance: ntchat.WeChat, message):
 # 注册消息回调
 @wechatnt.msg_register([ntchat.MT_RECV_TEXT_MSG, ntchat.MT_RECV_IMAGE_MSG,
                         ntchat.MT_RECV_VOICE_MSG, ntchat.MT_ROOM_ADD_MEMBER_NOTIFY_MSG,
-                        ntchat.MT_RECV_SYSTEM_MSG])
+                        ntchat.MT_RECV_SYSTEM_MSG, ntchat.MT_RECV_OTHER_APP_MSG])
 def all_msg_handler(wechat_instance: ntchat.WeChat, message):
     logger.debug(f"收到消息: {message}")
 

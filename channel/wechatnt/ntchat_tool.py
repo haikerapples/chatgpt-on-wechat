@@ -49,7 +49,35 @@ class NTTool(object):
         login_info = self.wechatnt.get_login_info()
         nickname = login_info['nickname']
         user_id = login_info['wxid']
+        
+        #type类型
+        type = message["type"]
+        
+        #是否引用消息
+        msg = ""
+        
+        if type == "11061":
+            #引用消息
+            raw_msg = message["data"]["raw_msg"]
             
+            #title == 当前说的话
+            start_tag = "<title>"
+            end_tag = "</title>"
+            start_index = raw_msg.find(start_tag) + len(start_tag)
+            end_index = raw_msg.find(end_tag)
+            current_msg = raw_msg[start_index:end_index]
+            
+            #content == 之前说的话
+            start_tag1 = "<content>"
+            end_tag1 = "</content>"
+            start_index1 = raw_msg.find(start_tag1) + len(start_tag1)
+            end_index1 = raw_msg.find(end_tag1)
+            orgin_msg = raw_msg[start_index1:end_index1]
+            msg = orgin_msg + current_msg
+        else:
+            #消息内容
+            msg = message["data"]["msg"]
+        
         #群ID：209xxxxx@chatroom
         room_wxid = message["data"]["room_wxid"]
         #@我的用户ID列表：['wxid_pxxxxx']
@@ -58,21 +86,12 @@ class NTTool(object):
         from_wxid = message["data"]["from_wxid"]
         #接受消息用户ID：wxid_pxxxxx
         to_wxid = message["data"]["to_wxid"]
-        #消息内容
-        msg = message["data"]["msg"]
         #消息ID：4952821xxxxx
         msgid = message["data"]["msgid"]
         #时间戳：1691075115
         timestamp = message["data"]["timestamp"]
         #消息类型：1
         wx_type = message["data"]["wx_type"]
-        #type类型
-        # 11046：文本消息 - ContextType.TEXT
-        # 11047：图片 - ContextType.IMAGE
-        # 11048：语音 - ContextType.VOICE
-        # 11098：加入群聊 - ContextType.JOIN_GROUP
-        # 11058：拍一拍 - ContextType.PATPAT
-        type = message["type"]
         
         #读取文件 - 群聊
         cacheDic = self.readFile("rooms.json", "tmp")
