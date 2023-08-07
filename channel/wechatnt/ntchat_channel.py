@@ -113,7 +113,7 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
         logger.error(f"执行插件任务报错！错误信息为：{e}")
     
     #未命中插件，默认处理
-    if reply is None or reply == "":
+    if reply is None or reply == "" or reply.content is None or reply.content == "":
         logger.debug(f"插件未命中查询，将使用GPT查询结果")
         #画图处理
         img_match_prefix = check_prefix(content, conf().get("image_create_prefix"))
