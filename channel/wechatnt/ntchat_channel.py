@@ -226,63 +226,65 @@ class NtchatChannel(object):
         logger.debug(f"reply对象 信息为：{vars(reply)}")
         logger.debug(f"context对象 信息为：{vars(context)}")
         
-        #收消息id
-        receiver = context["receiver"]
-        
-        #文本消息
-        if reply.type == ReplyType.TEXT:
-            match = re.search(r"@(.*?)\n", reply.content)
-            if match and False:
-                name = match.group(1)  # 获取第一个组的内容，即名字
-                directory = os.path.join(os.getcwd(), "tmp")
-                file_path = os.path.join(directory, "room_members.json")
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    room_members = json.load(file)
-                wxid = self.get_wxid_by_name(room_members, receiver, name)
-                if wxid is None or wxid == "":
-                    wechatnt.send_text(receiver, reply.content)
-                else:
+        try:
+            #收消息id
+            receiver = context["receiver"]
+            
+            #文本消息
+            if reply.type == ReplyType.TEXT:
+                msgObj: ChatMessage = context.get("msg")
+                if msgObj.is_group:
+                    wxid = msgObj.from_user_id
                     wxid_list = [wxid]
                     wechatnt.send_room_at_msg(receiver, reply.content, wxid_list)
-            else:
+                else:
+                    wechatnt.send_text(receiver, reply.content)
+                logger.info("[NT-WX]回复 Text消息 - 成功！回复内容为：{}, 消息接收者receiver：{}".format(reply, receiver))
+            
+            #错误、提示消息    
+            elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
                 wechatnt.send_text(receiver, reply.content)
-            logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
-        
-        #错误、提示消息    
-        elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
-            wechatnt.send_text(receiver, reply.content)
-            logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
-        
-        #图片下载    
-        elif reply.type == ReplyType.IMAGE_URL:  # 从网络下载图片
-            img_url = reply.content
-            filename = str(uuid.uuid4())
-            image_path = self.download_and_compress_image(img_url, filename)
-            wechatnt.send_image(receiver, file_path=image_path)
-            logger.info("[WX] sendImage url={}, receiver={}".format(img_url, receiver))
+                logger.info("[NT-WX]回复 错误、info - 成功！回复内容为：{}, 消息接收者receiver：{}".format(reply, receiver))
             
-        elif reply.type == ReplyType.IMAGE:  # 从文件读取图片
-            wechatnt.send_image(reply.content, toUserName=receiver)
-            logger.info("[WX] sendImage, receiver={}".format(receiver))
-        elif reply.type == ReplyType.VIDEO_URL:
-            video_url = reply.content
-            filename = str(uuid.uuid4())
-            # 调用你的函数，下载视频并保存为本地文件
-            video_path = self.download_video(video_url, filename)
-            if video_path is None:
-                # 如果视频太大，下载可能会被跳过，此时 video_path 将为 None
-                wechatnt.send_text(receiver, "抱歉，视频太大了！！！")
-            else:
-                wechatnt.send_video(receiver, video_path)
-            logger.info("[WX] sendVideo, receiver={}".format(receiver))
-        elif reply.type == ReplyType.CARD:
-            wechatnt.send_card(receiver, reply.content)
-            logger.info("[WX] sendCARD={}, receiver={}".format(reply.content, receiver))
-        elif reply.type == ReplyType.InviteRoom:
-            member_list = [receiver]
-            wechatnt.invite_room_member(reply.content, member_list)
-            logger.info("[WX] sendInviteRoom={}, receiver={}".format(reply.content, receiver))
+            #图片下载    
+            elif reply.type == ReplyType.IMAGE_URL:  # 从网络下载图片
+                img_url = reply.content
+                filename = str(uuid.uuid4())
+                image_path = self.download_and_compress_image(img_url, filename)
+                wechatnt.send_image(receiver, file_path=image_path)
+                logger.info("[NT-WX]回复 网络URL图片 - 回复成功！ 图片url：{}, receiver={}".format(img_url, receiver))
             
+            #图片文件    
+            elif reply.type == ReplyType.IMAGE:  # 从文件读取图片
+                wechatnt.send_image(reply.content, toUserName=receiver)
+                logger.info("[NT-WX]回复 图片文件 - 回复成功！ receiver={}".format(receiver))
+            
+            #视频链接    
+            elif reply.type == ReplyType.VIDEO_URL:
+                video_url = reply.content
+                filename = str(uuid.uuid4())
+                # 调用你的函数，下载视频并保存为本地文件
+                video_path = self.download_video(video_url, filename)
+                if video_path is None:
+                    # 如果视频太大，下载可能会被跳过，此时 video_path 将为 None
+                    wechatnt.send_text(receiver, "抱歉，视频太大了！！！")
+                else:
+                    wechatnt.send_video(receiver, video_path)
+                logger.info("[NT-WX]回复 网络URL视频 - 回复成功！视频URL为：{}, 消息接收者receiver：{}".format(video_url, receiver))
+                
+            #名片    
+            elif reply.type == ReplyType.CARD:
+                wechatnt.send_card(receiver, reply.content)
+                logger.info("[NT-WX]回复 名片 - 回复成功！回复内容为：{}, receiver={}".format(reply.content, receiver))
+            
+            #邀请进群    
+            elif reply.type == ReplyType.InviteRoom:
+                member_list = [receiver]
+                wechatnt.invite_room_member(reply.content, member_list)
+                logger.info("[NT-WX]回复 邀请进群 - 回复成功！回复内容为：{}, receiver={}".format(reply.content, receiver))
+        
+        except Exception as e:
+            logger.error(f"发送消息失败！错误信息：{e}")   
     
     #图片下载  
     def download_and_compress_image(self, url, filename, quality=80):
