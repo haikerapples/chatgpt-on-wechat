@@ -52,31 +52,6 @@ class NTTool(object):
         
         #type类型
         type = message["type"]
-        
-        #是否引用消息
-        msg = ""
-        if type == 11061:
-            #引用消息
-            raw_msg = message["data"]["raw_msg"]
-            
-            #title == 当前说的话
-            start_tag = "<title>"
-            end_tag = "</title>"
-            start_index = raw_msg.find(start_tag) + len(start_tag)
-            end_index = raw_msg.find(end_tag)
-            current_msg = raw_msg[start_index:end_index]
-            
-            #content == 之前说的话
-            start_tag1 = "<content>"
-            end_tag1 = "</content>"
-            start_index1 = raw_msg.find(start_tag1) + len(start_tag1)
-            end_index1 = raw_msg.find(end_tag1)
-            orgin_msg = raw_msg[start_index1:end_index1]
-            msg = orgin_msg + current_msg
-        else:
-            #消息内容
-            msg = message["data"]["msg"]
-        
         #群ID：209xxxxx@chatroom
         room_wxid = message["data"]["room_wxid"]
         #@我的用户ID列表：['wxid_pxxxxx']
@@ -103,23 +78,34 @@ class NTTool(object):
         #读取文件 - 好友 + 房间
         room_members = self.readFile("room_members.json", "tmp")
         
+    
         #构造context
-        content_dict = {}
-        content_dict["msg_id"] = msgid
-        content_dict["create_time"] = timestamp
+        content_dict = self.dealContentWithType(type)
+        msg = content_dict.get("content")
+        if msg is None or msg == "":
+            #消息内容["data"]["msg"]
+            tempMsg = message.get("data").get("msg")
+            msg = tempMsg
+            content_dict["content"] = msg
+            logger.info(f"转换内容失败，使用默认内容: msg = {msg}")
+        
+        #机器人被@的标识字符串
+        robot_isAt_markString = f"@{nickname} "
         #copy @机器人的消息，不会被识别为@，这里做兼容(例如： @robot 你好，此时如果是copy字符串时，无法被识别为@的消息)
-        match_isCopyMsgToRobot = msg.startswith(f"@{nickname} ")
+        match_isCopyMsgToRobot = msg.startswith(robot_isAt_markString)
         if match_isCopyMsgToRobot:
            #去除@信息
-           tempContent = msg.replace(f"@{nickname} ", "")
+           tempContent = msg.replace(robot_isAt_markString, "")
            msg = tempContent
-        content_dict["content"] = msg
+           content_dict["content"] = msg
+        
+        #其他内容
+        content_dict["msg_id"] = msgid
+        content_dict["create_time"] = timestamp
         content_dict["from_user_id"] = from_wxid
         content_dict["from_user_nickname"] = contacts.get(from_wxid)
         content_dict["to_user_id"] = to_wxid
         #当前机器人
-        login_info = self.wechatnt.get_login_info()
-        nickname = login_info['nickname']
         content_dict["to_user_nickname"] = nickname
         content_dict["other_user_id"] = from_wxid
         content_dict["other_user_nickname"] = contacts.get(from_wxid)
@@ -138,13 +124,9 @@ class NTTool(object):
             #添加必要key
             content_dict["receiver"] = to_wxid
             content_dict["session_id"] = to_wxid
-                        
-        #获取其他字段
-        tempDic = self.dealDictWithType(type, message)
-        content_dict.update(tempDic)
         
         #msg对象
-        msgObj : ChatMessage = ChatMessage(content_dict)
+        msgObj: ChatMessage = ChatMessage(content_dict)
         #信息映射
         for key, value in content_dict.items():
             if hasattr(msgObj, key):
@@ -173,61 +155,107 @@ class NTTool(object):
                 return contact['nickname']
         return None  # 如果没有找到对应的wxid，则返回None
    
-    #根据消息类型 - 处理dict
-    def dealDictWithType(self, type, message):
-        data = message["data"]
-        content_dict = {}
-        tempType = None
+    #根据消息类型 - 处理content内容
+    def dealContentWithType(self, type, message):
         
-        # 文本消息类型
-        if type == 11046:  
-            tempType = ContextType.TEXT
-        
-        #图片 - 需要缓存文件的消息类型
-        elif type == 11047:  
-            image_path = data.get('image').replace('\\', '/')
-            #可读
-            if self.ensure_file_ready(image_path):
-                tempType = ContextType.IMAGE
-                #图片解析器
-                decoder = WechatImageDecoder(image_path)
-                content_dict["content"] = decoder.decode()
-            else:
-                logger.error(f"图片文件不可读！Image file {image_path} is not ready.")
+        try:
+            data = message["data"]
+            content_dict = {}
+            tempType = None
+            
+            # 文本消息类型
+            if type == 11046:  
+                tempType = ContextType.TEXT
+                #消息内容
+                msg = message["data"]["msg"]
+                content_dict["content"] = msg
                 
-        #语音
-        elif type == 11048: 
-            tempType = ContextType.VOICE
-            content_dict["content"] = data.get('mp3_file')
+            #图片 - 需要缓存文件的消息类型
+            elif type == 11047:  
+                image_path = data.get('image').replace('\\', '/')
+                #可读
+                if self.ensure_file_ready(image_path):
+                    tempType = ContextType.IMAGE
+                    #图片解析器
+                    decoder = WechatImageDecoder(image_path)
+                    content_dict["content"] = decoder.decode()
+                else:
+                    logger.error(f"图片文件不可读！Image file {image_path} is not ready.")
+                    
+            #语音
+            elif type == 11048: 
+                tempType = ContextType.VOICE
+                content_dict["content"] = data.get('mp3_file')
+            
+            #加群
+            elif type == 11098:
+                tempType = ContextType.JOIN_GROUP
+                actual_user_nickname = data['member_list'][0]['nickname']
+                content_dict["content"] = f"{actual_user_nickname}加入了群聊！"
+                content_dict["actual_user_nickname"] = actual_user_nickname
+                
+                #读取文件
+                cacheDic = self.readFile("room_members.json", "tmp")
+                rooms = {room['wxid']: room['nickname'] for room in cacheDic}
+                
+                #写入文件
+                result = {}
+                for room_wxid in rooms.keys():
+                    room_members = self.wechatnt.get_room_members(room_wxid)
+                    result[room_wxid] = room_members
+                self.writeFile("room_members.json", "tmp", result)
+            
+            #拍一拍    
+            elif type == 11058 and "拍了拍" in data.get('raw_msg'):
+                tempType = ContextType.PATPAT
+                content_dict["content"] = data.get('raw_msg')
+                
+            #引用消息
+            elif type == 11061:
+                #登录信息
+                login_info = self.wechatnt.get_login_info()
+                nickname = login_info['nickname']
         
-        #加群
-        elif type == 11098:
-            tempType = ContextType.JOIN_GROUP
-            actual_user_nickname = data['member_list'][0]['nickname']
-            content_dict["content"] = f"{actual_user_nickname}加入了群聊！"
-            content_dict["actual_user_nickname"] = actual_user_nickname
+                #机器人被@的标识字符串
+                robot_isAt_markString = f"@{nickname} "
             
-            #读取文件
-            cacheDic = self.readFile("room_members.json", "tmp")
-            rooms = {room['wxid']: room['nickname'] for room in cacheDic}
-            
-            #写入文件
-            result = {}
-            for room_wxid in rooms.keys():
-                room_members = self.wechatnt.get_room_members(room_wxid)
-                result[room_wxid] = room_members
-            self.writeFile("room_members.json", "tmp", result)
-        
-        #拍一拍    
-        elif type == 11058 and "拍了拍" in data.get('raw_msg'):
-            tempType = ContextType.PATPAT
-            content_dict["content"] = data.get('raw_msg')
-            
-        else:
-            logger.error(f"暂不支持的消息类型：{type}")
-        
-        #类型
-        if tempType is not None:
-            content_dict["ctype"] = tempType
-            
-        return content_dict
+                #引用消息
+                raw_msg = message["data"]["raw_msg"]
+                
+                #title == 当前说的话
+                current_msg = self.getValue_from_raw_msg("title", raw_msg)
+                #content == 之前说的话
+                orgin_msg = self.getValue_from_raw_msg("content", raw_msg)
+                #引用中被@处理
+                if current_msg.startswith(robot_isAt_markString):
+                    current_msg = current_msg.replace(robot_isAt_markString, "")
+                    orgin_msg = robot_isAt_markString + orgin_msg
+                msg = orgin_msg + current_msg
+                content_dict["content"] = msg
+                
+            else:
+                logger.error(f"暂不支持的消息类型：{type}")
+                #默认文本消息
+                tempType = ContextType.TEXT
+                #消息内容
+                msg = message["data"]["msg"]
+                content_dict["content"] = msg
+                
+            #类型
+            if tempType is not None:
+                content_dict["ctype"] = tempType
+                
+            return content_dict
+    
+        except Exception as e:
+            logger.error(f"根据类型处理消息内容失败：{e}，原消息: {message}")
+            return {}
+    
+    #获取内容从raw_msg中
+    def getValue_from_raw_msg(self, key, raw_msg):
+        start_tag = f"<{key}>"
+        end_tag = f"</{key}>"
+        start_index = raw_msg.find(start_tag) + len(start_tag)
+        end_index = raw_msg.find(end_tag)
+        current_msg = raw_msg[start_index:end_index]
+        return current_msg
