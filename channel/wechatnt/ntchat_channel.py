@@ -244,7 +244,7 @@ class NtchatChannel(object):
                     #增加@
                     at_userName = msgObj.from_user_nickname
                     if at_userName is not None and len(at_userName) > 0:
-                        reply_text = "@{at_userName} " + reply_text
+                        reply_text = f"@{at_userName} " + reply_text
                     #回复 
                     wechatnt.send_room_at_msg(receiver, reply_text, wxid_list)
                 else:
