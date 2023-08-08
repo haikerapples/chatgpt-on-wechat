@@ -1,6 +1,11 @@
 .DS_Store
 .idea
 .vscode
+.venv
+.vs
+.GitHub
+.flake8
+.pre-commit-config.yaml
 .wechaty/
 __pycache__/
 venv*
@@ -22,6 +27,8 @@ plugins/**/
 !plugins/tool
 !plugins/banwords
 !plugins/banwords/**/
+plugins/banwords/__pycache__
+plugins/banwords/lib/__pycache__
 !plugins/hello
 !plugins/role
 !plugins/keyword

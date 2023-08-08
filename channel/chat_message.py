@@ -26,7 +26,7 @@ actual_user_id: 实际发送者id (群聊必填)
 actual_user_nickname：实际发送者昵称
 
 
-
+self_display_name: 自身的展示名，设置群昵称时，该字段表示群昵称
 
 _prepare_fn: 准备函数，用于准备消息的内容，比如下载图片等,
 _prepared: 是否已经调用过准备函数
@@ -49,6 +49,7 @@ class ChatMessage(object):
     other_user_id = None
     other_user_nickname = None
     my_msg = False
+    self_display_name = None
 
     is_group = False
     is_at = False
