@@ -80,7 +80,7 @@ class NTTool(object):
         
     
         #构造context
-        content_dict = self.dealContentWithType(type)
+        content_dict = self.dealContentWithType(type, message)
         msg = content_dict.get("content")
         if msg is None or msg == "":
             #消息内容["data"]["msg"]
