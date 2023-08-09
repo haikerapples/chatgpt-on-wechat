@@ -101,9 +101,8 @@ def all_msg_handler(wechat_instance: ntchat.WeChat, message):
         logger.debug(f"即将将消息发送给插件，查询结果")
         #检测插件是否会消费该消息
         e_context = PluginManager().emit_event(
-            EventContext(
-                Event.ON_HANDLE_CONTEXT,
-                {"channel": "ntChat", "context": context, "reply": Reply()},
+            EventContext(Event.ON_HANDLE_CONTEXT,
+                         {"channel": ntchat_channel, "context": context, "reply": Reply()},
             )
         )
         if e_context and e_context.is_pass():
@@ -219,7 +218,10 @@ class NtchatChannel(object):
         # 群聊 + 成员
         self.tool.writeFile('room_members.json', directoryName, result)
    
-
+    #发送消息(其他插件可能会调用_send的方式，增加该方法兼容)
+    def _send(self, reply: Reply, context: Context):
+        self.send(reply, context)
+        
     # 统一的发送函数，每个Channel自行实现，根据reply的type字段发送不同类型的消息
     def send(self, reply: Reply, context: Context):
         #打印对象信息
