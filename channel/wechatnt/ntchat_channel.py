@@ -295,7 +295,7 @@ class NtchatChannel(object):
             logger.error(f"发送消息失败！错误信息：{e}")   
     
     #图片下载  
-    def download_and_compress_image(self, url, filename, quality=80):
+    def download_and_compress_image(self, url, filename, quality=100):
         # 确定保存图片的目录
         directory = os.path.join(os.getcwd(), "tmp")
         # 如果目录不存在，则创建目录
