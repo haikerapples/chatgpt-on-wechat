@@ -55,6 +55,7 @@ class ChatMessage(object):
     is_at = False
     actual_user_id = None
     actual_user_nickname = None
+    at_list = None
 
     _prepare_fn = None
     _prepared = False
@@ -69,7 +70,7 @@ class ChatMessage(object):
             self._prepare_fn()
 
     def __str__(self):
-        return "ChatMessage: id={}, create_time={}, ctype={}, content={}, from_user_id={}, from_user_nickname={}, to_user_id={}, to_user_nickname={}, other_user_id={}, other_user_nickname={}, is_group={}, is_at={}, actual_user_id={}, actual_user_nickname={}".format(
+        return "ChatMessage: id={}, create_time={}, ctype={}, content={}, from_user_id={}, from_user_nickname={}, to_user_id={}, to_user_nickname={}, other_user_id={}, other_user_nickname={}, is_group={}, is_at={}, actual_user_id={}, actual_user_nickname={}, at_list={}".format(
             self.msg_id,
             self.create_time,
             self.ctype,
@@ -84,4 +85,5 @@ class ChatMessage(object):
             self.is_at,
             self.actual_user_id,
             self.actual_user_nickname,
+            self.at_list
         )
