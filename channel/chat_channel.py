@@ -211,6 +211,8 @@ class ChatChannel(Channel):
             elif context.type == ContextType.IMAGE:  # 图片消息，当前仅做下载保存到本地的逻辑
                 cmsg = context["msg"]
                 cmsg.prepare()
+            elif context.type == ContextType.SHARING:  # 分享信息，当前无默认逻辑
+                pass
             elif context.type == ContextType.FUNCTION or context.type == ContextType.FILE:  # 文件消息及函数调用等，当前无默认逻辑
                 pass
             else:
@@ -247,7 +249,7 @@ class ChatChannel(Channel):
                     reply.content = reply_text
                 elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
                     reply.content = "[" + str(reply.type) + "]\n" + reply.content
-                elif reply.type == ReplyType.IMAGE_URL or reply.type == ReplyType.VOICE or reply.type == ReplyType.IMAGE:
+                elif reply.type == ReplyType.IMAGE_URL or reply.type == ReplyType.VOICE or reply.type == ReplyType.IMAGE or reply.type == ReplyType.FILE or reply.type == ReplyType.VIDEO or reply.type == ReplyType.VIDEO_URL:
                     pass
                 else:
                     logger.error("[WX] unknown reply type: {}".format(reply.type))

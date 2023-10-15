@@ -5,7 +5,6 @@ import requests
 import threading
 import time
 from bridge.reply import Reply, ReplyType
-import aiohttp
 import asyncio
 from bridge.context import ContextType
 from plugins import EventContext, EventAction
@@ -49,7 +48,7 @@ task_name_mapping = {
 
 
 class MJTask:
-    def __init__(self, id, user_id: str, task_type: TaskType, raw_prompt=None, expires: int = 60 * 30,
+    def __init__(self, id, user_id: str, task_type: TaskType, raw_prompt=None, expires: int = 60 * 6,
                  status=Status.PENDING):
         self.id = id
         self.user_id = user_id
